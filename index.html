@@ -2785,7 +2785,7 @@ async function loadSurplusDeficitData() {
     }
 }
 
-// Update analysis UI
+// Update analysis UI - CORRECTED VERSION
 function updateAnalysisUI() {
     // Get filtered months based on time period
     let filteredMonths = getFilteredMonths();
@@ -2829,6 +2829,40 @@ function updateAnalysisUI() {
             </tr>
         `;
     });
+    
+    // CORRECTED: Calculate average collection percentage same as Year Summary
+    let totalCollectionPercent = 0;
+    let validMonthsCount = 0;
+    
+    filteredMonths.forEach(month => {
+        const data = allMonthsData[month];
+        if (data.netSales > 0) {
+            const monthCollectionPercent = (data.total / data.netSales) * 100;
+            totalCollectionPercent += monthCollectionPercent;
+            validMonthsCount++;
+        }
+    });
+    
+    const avgCollectionPercent = validMonthsCount > 0 ? (totalCollectionPercent / validMonthsCount) : 0;
+    
+    tableHTML += `
+        <tr style="font-weight: bold; background-color: ${isDarkMode ? 'rgba(102, 126, 234, 0.2)' : 'rgba(102, 126, 234, 0.1)'};">
+            <td>Average</td>
+            <td>-</td>
+            <td>-</td>
+            <td>${formatCurrency(totalCollection)}</td>
+            <td>
+                <div>${avgCollectionPercent.toFixed(1)}%</div>
+                <div class="percentage-bar">
+                    <div class="percentage-fill" style="width: ${avgCollectionPercent}%"></div>
+                </div>
+            </td>
+            <td>${formatCurrency(totalNetSales)}</td>
+            <td class="${(totalCollection - totalNetSales) >= 0 ? 'surplus' : 'deficit'}">
+                ${(totalCollection - totalNetSales) >= 0 ? '+' : ''}${formatCurrency(totalCollection - totalNetSales)}
+            </td>
+        </tr>
+    `;
     
     document.getElementById('analysisTableBody').innerHTML = tableHTML;
     
@@ -2910,14 +2944,14 @@ function updateSurplusDeficitSection() {
     `;
 }
 
-// Update trend analysis
+// Update trend analysis - CORRECTED VERSION
 function updateTrendAnalysis(months) {
     if (months.length < 2) {
         document.getElementById('trendMetrics').innerHTML = '<div style="grid-column: 1/-1; text-align: center; padding: 20px; color: #666;">Insufficient data for trend analysis</div>';
         return;
     }
     
-    // Calculate trend metrics
+    // Calculate trend metrics - CORRECTED to match Monthly Collection Performance
     let totalCollection = 0;
     let totalNetSales = 0;
     let totalPhysical = 0;
@@ -2933,7 +2967,22 @@ function updateTrendAnalysis(months) {
     
     // Calculate averages
     const avgCollection = totalCollection / months.length;
-    const avgCollectionRate = totalNetSales >0 ? (totalCollection / totalNetSales * 100) : 0;
+    
+    // CORRECTED: Calculate average collection percentage same as Monthly Collection Performance
+    let totalCollectionPercent = 0;
+    let validMonthsCount = 0;
+    
+    months.forEach(month => {
+        const data = allMonthsData[month];
+        if (data.netSales > 0) {
+            const monthCollectionPercent = (data.total / data.netSales) * 100;
+            totalCollectionPercent += monthCollectionPercent;
+            validMonthsCount++;
+        }
+    });
+    
+    const avgCollectionRate = validMonthsCount > 0 ? (totalCollectionPercent / validMonthsCount) : 0;
+    
     const avgPhysical = totalPhysical / months.length;
     const avgDigital = totalDigital / months.length;
     
@@ -2980,12 +3029,20 @@ function updateTrendAnalysis(months) {
     // Update trend metrics UI
     document.getElementById('trendMetrics').innerHTML = `
         <div class="trend-metric">
-            <div class="trend-metric-value">${formatCurrency(avgCollection)}</div>
-            <div class="trend-metric-label">Avg Monthly Collection</div>
+            <div class="trend-metric-value">${formatCurrency(totalCollection)}</div>
+            <div class="trend-metric-label">Total Collection</div>
+        </div>
+        <div class="trend-metric">
+            <div class="trend-metric-value">${formatCurrency(totalNetSales)}</div>
+            <div class="trend-metric-label">Total Net Sales</div>
         </div>
         <div class="trend-metric">
             <div class="trend-metric-value">${avgCollectionRate.toFixed(1)}%</div>
             <div class="trend-metric-label">Avg Collection Rate</div>
+        </div>
+        <div class="trend-metric">
+            <div class="trend-metric-value">${formatCurrency(avgCollection)}</div>
+            <div class="trend-metric-label">Avg Monthly Collection</div>
         </div>
         <div class="trend-metric">
             <div class="trend-metric-value">${totalGrowth.toFixed(1)}%</div>
@@ -4246,6 +4303,31 @@ function downloadAnalysisPDF() {
             (surplusDeficit >= 0 ? '+' : '') + formatCurrency(surplusDeficit)
         ]);
     });
+    
+    // Add average collection percentage row - CORRECTED
+    let totalCollectionPercent = 0;
+    let validMonthsCount = 0;
+    
+    filteredMonths.forEach(month => {
+        const data = allMonthsData[month];
+        if (data.netSales > 0) {
+            const monthCollectionPercent = (data.total / data.netSales) * 100;
+            totalCollectionPercent += monthCollectionPercent;
+            validMonthsCount++;
+        }
+    });
+    
+    const avgCollectionPercent = validMonthsCount > 0 ? (totalCollectionPercent / validMonthsCount) : 0;
+    
+    analysisData.push([
+        'Average',
+        '-',
+        '-',
+        formatCurrency(totalCollection),
+        avgCollectionPercent.toFixed(1) + '%',
+        formatCurrency(totalNetSales),
+        (totalCollection - totalNetSales) >= 0 ? '+' : '' + formatCurrency(totalCollection - totalNetSales)
+    ]);
 
     doc.autoTable({
         head: [analysisData[0]],
@@ -4331,6 +4413,31 @@ function downloadAnalysisExcel() {
             surplusDeficit
         ]);
     });
+    
+    // Add average collection percentage row - CORRECTED
+    let totalCollectionPercent = 0;
+    let validMonthsCount = 0;
+    
+    filteredMonths.forEach(month => {
+        const data = allMonthsData[month];
+        if (data.netSales > 0) {
+            const monthCollectionPercent = (data.total / data.netSales) * 100;
+            totalCollectionPercent += monthCollectionPercent;
+            validMonthsCount++;
+        }
+    });
+    
+    const avgCollectionPercent = validMonthsCount > 0 ? (totalCollectionPercent / validMonthsCount) : 0;
+    
+    analysisData.push([
+        'Average',
+        '-',
+        '-',
+        totalCollection,
+        avgCollectionPercent.toFixed(1) + '%',
+        totalNetSales,
+        totalCollection - totalNetSales
+    ]);
 
     const wsAnalysis = XLSX.utils.aoa_to_sheet(analysisData);
     XLSX.utils.book_append_sheet(wb, wsAnalysis, 'Analysis');
